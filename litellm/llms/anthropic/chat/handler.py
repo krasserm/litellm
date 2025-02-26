@@ -533,7 +533,7 @@ class ModelResponseIterator:
             provider_specific_fields["citation"] = content_block["delta"]["citation"]
         elif (
             "thinking" in content_block["delta"]
-            or "signature_delta" == content_block["delta"]
+            or content_block["delta"].get("type") == "signature_delta"
         ):
             provider_specific_fields["thinking_blocks"] = [
                 ChatCompletionThinkingBlock(
@@ -585,19 +585,20 @@ class ModelResponseIterator:
                         "index": self.tool_index,
                     }
             elif type_chunk == "content_block_stop":
-                ContentBlockStop(**chunk)  # type: ignore
-                # check if tool call content block
-                is_empty = self.check_empty_tool_call_args()
-                if is_empty:
-                    tool_use = {
-                        "id": None,
-                        "type": "function",
-                        "function": {
-                            "name": None,
-                            "arguments": "{}",
-                        },
-                        "index": self.tool_index,
-                    }
+                content_block_stop = ContentBlockStop(**chunk)  # type: ignore
+                # Only check for empty tool call args if this is actually a tool use block
+                if "content_block" in chunk and chunk["content_block"]["type"] == "tool_use":
+                    is_empty = self.check_empty_tool_call_args()
+                    if is_empty:
+                        tool_use = {
+                            "id": None,
+                            "type": "function",
+                            "function": {
+                                "name": None,
+                                "arguments": "{}",
+                            },
+                            "index": self.tool_index,
+                        }
             elif type_chunk == "message_delta":
                 """
                 Anthropic

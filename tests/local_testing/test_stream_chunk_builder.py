@@ -938,3 +938,72 @@ def test_grok_bug(load_env):
     litellm.set_verbose = True
     _, LLAMA3_3 = load_env
     execute_completion(LLAMA3_3)
+
+def test_map_reasoning_content():
+    """Test the map_reasoning_content function with different input formats"""
+    from litellm.types.utils import map_reasoning_content
+    
+    # Test case 1: dict-style delta with thinking blocks (as a list of dict objects)
+    dict_delta = {
+        "thinking_blocks": [
+            {"thinking": "This is a thinking content in dictionary format"}
+        ]
+    }
+    result1 = map_reasoning_content(provider_specific_fields=dict_delta)
+    assert result1 == "This is a thinking content in dictionary format", "Failed to map dict-style thinking content"
+    
+    # Test case 2: thinking blocks with object attributes
+    class ThinkingBlock:
+        def __init__(self, thinking=None, signature_delta=None):
+            self.thinking = thinking
+            self.signature_delta = signature_delta
+    
+    obj_delta = {
+        "thinking_blocks": [
+            ThinkingBlock(thinking="This is thinking content as an attribute")
+        ]
+    }
+    result2 = map_reasoning_content(provider_specific_fields=obj_delta)
+    assert result2 == "This is thinking content as an attribute", "Failed to map object-style thinking content"
+    
+    # Test case 3: thinking blocks with multiple entries
+    multi_blocks_delta = {
+        "thinking_blocks": [
+            {"thinking": "First thinking block. "},
+            {"thinking": "Second thinking block."}
+        ]
+    }
+    result3 = map_reasoning_content(provider_specific_fields=multi_blocks_delta)
+    assert result3 == "First thinking block. Second thinking block.", "Failed to concatenate multiple thinking blocks"
+    
+    # Test case 4: signature_delta handling in dict format
+    signature_delta = {
+        "thinking_blocks": [
+            {"signature_delta": "This is a signature delta in dictionary format"}
+        ]
+    }
+    result4 = map_reasoning_content(provider_specific_fields=signature_delta)
+    assert result4 == "This is a signature delta in dictionary format", "Failed to map signature_delta content"
+    
+    # Test case 5: object with signature_delta attribute
+    obj_signature_delta = {
+        "thinking_blocks": [
+            ThinkingBlock(signature_delta="This is a signature delta as an attribute")
+        ]
+    }
+    result5 = map_reasoning_content(provider_specific_fields=obj_signature_delta)
+    assert result5 == "This is a signature delta as an attribute", "Failed to map signature_delta attribute"
+    
+    # Test case 6: No thinking blocks at all
+    empty_delta = {
+        "content": "Only regular content"
+    }
+    result6 = map_reasoning_content(provider_specific_fields=empty_delta)
+    assert result6 == "", "Should return empty string when no thinking blocks exist"
+    
+    # Test case 7: Empty thinking blocks list
+    empty_blocks = {
+        "thinking_blocks": []
+    }
+    result7 = map_reasoning_content(provider_specific_fields=empty_blocks)
+    assert result7 == "", "Should return empty string for empty thinking blocks list"

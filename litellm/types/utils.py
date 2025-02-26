@@ -470,14 +470,17 @@ def map_reasoning_content(provider_specific_fields: Dict[str, Any]) -> str:
 
     reasoning_content: str = ""
     for k, v in provider_specific_fields.items():
-        if k == "thinking_blocks" and isinstance(v, list):
-            _reasoning_content = ""
+        if k == "thinking_blocks":
             for block in v:
-                if block.get("type") == "thinking":
-                    _reasoning_content += block.get("thinking", "")
-            reasoning_content = _reasoning_content
-        elif k == "reasoning_content":
-            reasoning_content = v
+                if hasattr(block, "thinking") and block.thinking is not None:
+                    reasoning_content += block.thinking
+                elif isinstance(block, dict) and block.get("thinking") is not None:
+                    reasoning_content += block.get("thinking", "")
+                # Handle signature_delta separately
+                if hasattr(block, "signature_delta") and block.signature_delta is not None:
+                    reasoning_content += block.signature_delta
+                elif isinstance(block, dict) and block.get("signature_delta") is not None:
+                    reasoning_content += block.get("signature_delta", "")
     return reasoning_content
 
 
